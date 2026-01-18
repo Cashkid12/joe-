@@ -1,4 +1,9 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
 interface Project {
+  id: string;
   title: string;
   type: string;
   description: string;
@@ -9,10 +14,16 @@ interface Project {
 }
 
 export default function Projects() {
-  // Projects array - Add your projects here or manage through admin panel
-  const projects: Project[] = [
-    // Your projects will be added here
-  ];
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedProjects = localStorage.getItem('portfolioProjects');
+      if (savedProjects) {
+        setProjects(JSON.parse(savedProjects));
+      }
+    }
+  }, []);
 
   return (
     <section id="projects" className="py-20">

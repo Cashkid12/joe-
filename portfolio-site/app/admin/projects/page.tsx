@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -25,6 +25,16 @@ export default function ProjectsAdmin() {
 
   // Sample projects (in production, this would come from a database)
   const [projects, setProjects] = useState<Project[]>([]);
+
+  // Load projects from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedProjects = localStorage.getItem('portfolioProjects');
+      if (savedProjects) {
+        setProjects(JSON.parse(savedProjects));
+      }
+    }
+  }, []);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -75,10 +85,15 @@ export default function ProjectsAdmin() {
       image: formData.image || '/projects/default.jpg'
     };
 
-    if (editingProject) {
-      setProjects(projects.map(p => p.id === editingProject.id ? newProject : p));
-    } else {
-      setProjects([...projects, newProject]);
+    const updatedProjects = editingProject 
+      ? projects.map(p => p.id === editingProject.id ? newProject : p)
+      : [...projects, newProject];
+
+    setProjects(updatedProjects);
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('portfolioProjects', JSON.stringify(updatedProjects));
     }
 
     // Reset form
@@ -113,7 +128,13 @@ export default function ProjectsAdmin() {
 
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this project?')) {
-      setProjects(projects.filter(p => p.id !== id));
+      const updatedProjects = projects.filter(p => p.id !== id);
+      setProjects(updatedProjects);
+      
+      // Save to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('portfolioProjects', JSON.stringify(updatedProjects));
+      }
     }
   };
 
