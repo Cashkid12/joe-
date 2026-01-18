@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 interface Project {
   id: string;
@@ -34,19 +35,30 @@ export default function Projects() {
           {projects.map((project, index) => (
             <div 
               key={index} 
-              className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all duration-500 flex flex-col transform hover:scale-105 hover:-translate-y-2"
+              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 flex flex-col transform hover:scale-105 hover:-translate-y-2"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <div className="mb-4">
-                <h3 className="text-xl font-bold mb-2">{project.title}</h3>
-                <span className="inline-block bg-black text-white text-xs px-3 py-1 rounded-full">
-                  {project.type}
-                </span>
-              </div>
-              
-              <p className="text-gray-700 leading-relaxed mb-4 flex-grow">
-                {project.description}
-              </p>
+              {project.image && (
+                <div className="relative w-full h-48 bg-gray-200">
+                  <Image
+                    src={project.image}
+                    alt={project.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <div className="p-6 flex flex-col flex-grow">
+                <div className="mb-4">
+                  <h3 className="text-xl font-bold mb-2">{project.title}</h3>
+                  <span className="inline-block bg-black text-white text-xs px-3 py-1 rounded-full">
+                    {project.type}
+                  </span>
+                </div>
+                
+                <p className="text-gray-700 leading-relaxed mb-4 flex-grow">
+                  {project.description}
+                </p>
               
               {/* Technologies */}
               <div className="mb-4">
@@ -87,7 +99,8 @@ export default function Projects() {
                 )}
               </div>
             </div>
-          ))}
+          </div>
+        ))}
         </div>
       </div>
     </section>
