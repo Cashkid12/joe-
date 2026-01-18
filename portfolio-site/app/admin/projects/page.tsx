@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 interface Project {
-  id: string;
+  _id: string;
   title: string;
   type: string;
   description: string;
@@ -26,14 +26,18 @@ export default function ProjectsAdmin() {
   // Sample projects (in production, this would come from a database)
   const [projects, setProjects] = useState<Project[]>([]);
 
-  // Load projects from localStorage on mount
+  // Load projects from database on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedProjects = localStorage.getItem('portfolioProjects');
-      if (savedProjects) {
-        setProjects(JSON.parse(savedProjects));
+    const loadProjects = async () => {
+      try {
+        const res = await fetch('/api/projects');
+        const data = await res.json();
+        setProjects(data);
+      } catch (error) {
+        console.error('Error loading projects:', error);
       }
-    }
+    };
+    loadProjects();
   }, []);
 
   const [formData, setFormData] = useState({
@@ -69,13 +73,12 @@ export default function ProjectsAdmin() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const techArray = formData.technologies.split(',').map(tech => tech.trim()).filter(tech => tech);
     
-    const newProject: Project = {
-      id: editingProject ? editingProject.id : Date.now().toString(),
+    const projectData = {
       title: formData.title,
       type: formData.type,
       description: formData.description,
@@ -85,30 +88,28 @@ export default function ProjectsAdmin() {
       image: formData.image || '/projects/default.jpg'
     };
 
-    const updatedProjects = editingProject 
-      ? projects.map(p => p.id === editingProject.id ? newProject : p)
-      : [...projects, newProject];
+    try {
+      const url = editingProject ? `/api/projects/${editingProject._id}` : '/api/projects';
+      const method = editingProject ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(projectData),
+      });
 
-    setProjects(updatedProjects);
-    
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('portfolioProjects', JSON.stringify(updatedProjects));
+      if (res.ok) {
+        const savedProject = await res.json();
+        if (editingProject) {
+          setProjects(projects.map(p => p._id === editingProject._id ? savedProject : p));
+        } else {
+          setProjects([savedProject, ...projects]);
+        }
+        handleCancel();
+      }
+    } catch (error) {
+      console.error('Error saving project:', error);
     }
-
-    // Reset form
-    setFormData({
-      title: '',
-      type: 'Web Application',
-      description: '',
-      technologies: '',
-      github: '',
-      demo: '',
-      image: ''
-    });
-    setImagePreview('');
-    setShowForm(false);
-    setEditingProject(null);
   };
 
   const handleEdit = (project: Project) => {
@@ -126,14 +127,17 @@ export default function ProjectsAdmin() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this project?')) {
-      const updatedProjects = projects.filter(p => p.id !== id);
-      setProjects(updatedProjects);
-      
-      // Save to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('portfolioProjects', JSON.stringify(updatedProjects));
+      try {
+        const res = await fetch(`/api/projects/${id}`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          setProjects(projects.filter(p => p._id !== id));
+        }
+      } catch (error) {
+        console.error('Error deleting project:', error);
       }
     }
   };
@@ -375,7 +379,7 @@ export default function ProjectsAdmin() {
         {/* Projects List */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
-            <div key={project.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div key={project._id} className="bg-white rounded-xl shadow-lg overflow-hidden">
               {project.image && (
                 <div className="relative w-full h-48 bg-gray-200">
                   <Image
@@ -417,7 +421,7 @@ export default function ProjectsAdmin() {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(project.id)}
+                    onClick={() => handleDelete(project._id)}
                     className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm font-medium"
                   >
                     Delete

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 interface Message {
-  id: string;
+  _id: string;
   name: string;
   subject: string;
   message: string;
@@ -20,21 +20,22 @@ export default function AdminDashboard() {
   // Sample messages (in production, this would come from a database)
   const [messages, setMessages] = useState<Message[]>([]);
 
-  // Load messages from localStorage on mount
+  // Load messages from database on mount
   useEffect(() => {
-    const loadMessages = () => {
-      if (typeof window !== 'undefined') {
-        const savedMessages = localStorage.getItem('portfolioMessages');
-        if (savedMessages) {
-          setMessages(JSON.parse(savedMessages));
-        }
+    const loadMessages = async () => {
+      try {
+        const res = await fetch('/api/messages');
+        const data = await res.json();
+        setMessages(data);
+      } catch (error) {
+        console.error('Error loading messages:', error);
       }
     };
     
     loadMessages();
     
-    // Refresh messages every 5 seconds to check for new ones
-    const interval = setInterval(loadMessages, 5000);
+    // Refresh messages every 10 seconds to check for new ones
+    const interval = setInterval(loadMessages, 10000);
     
     return () => clearInterval(interval);
   }, []);
@@ -43,7 +44,7 @@ export default function AdminDashboard() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple authentication (in production, use proper auth)
+    // Simple authentication
     if (password === 'admin123') {
       setIsAuthenticated(true);
       setError('');
@@ -52,29 +53,38 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleMessageClick = (message: Message) => {
+  const handleMessageClick = async (message: Message) => {
     setSelectedMessage(message);
-    // Mark as read
-    const updatedMessages = messages.map(m => 
-      m.id === message.id ? { ...m, read: true } : m
-    );
-    setMessages(updatedMessages);
-    
-    // Update localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('portfolioMessages', JSON.stringify(updatedMessages));
+    if (!message.read) {
+      try {
+        const res = await fetch(`/api/messages/${message._id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ read: true }),
+        });
+        if (res.ok) {
+          setMessages(messages.map(m => 
+            m._id === message._id ? { ...m, read: true } : m
+          ));
+        }
+      } catch (error) {
+        console.error('Error updating message:', error);
+      }
     }
   };
 
-  const handleDeleteMessage = (id: string) => {
+  const handleDeleteMessage = async (id: string) => {
     if (confirm('Are you sure you want to delete this message?')) {
-      const updatedMessages = messages.filter(m => m.id !== id);
-      setMessages(updatedMessages);
-      setSelectedMessage(null);
-      
-      // Update localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('portfolioMessages', JSON.stringify(updatedMessages));
+      try {
+        const res = await fetch(`/api/messages/${id}`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          setMessages(messages.filter(m => m._id !== id));
+          setSelectedMessage(null);
+        }
+      } catch (error) {
+        console.error('Error deleting message:', error);
       }
     }
   };
@@ -190,10 +200,10 @@ export default function AdminDashboard() {
                 ) : (
                   messages.map((message) => (
                     <button
-                      key={message.id}
+                      key={message._id}
                       onClick={() => handleMessageClick(message)}
                       className={`w-full text-left p-4 rounded-lg transition ${
-                        selectedMessage?.id === message.id
+                        selectedMessage?._id === message._id
                           ? 'bg-black text-white'
                           : 'bg-[#F5F5F5] hover:bg-gray-200'
                       }`}
@@ -227,7 +237,7 @@ export default function AdminDashboard() {
                       <p className="text-gray-500 text-sm">{selectedMessage.date}</p>
                     </div>
                     <button
-                      onClick={() => handleDeleteMessage(selectedMessage.id)}
+                      onClick={() => handleDeleteMessage(selectedMessage._id)}
                       className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-medium"
                     >
                       Delete

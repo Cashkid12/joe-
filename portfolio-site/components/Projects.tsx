@@ -18,12 +18,16 @@ export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedProjects = localStorage.getItem('portfolioProjects');
-      if (savedProjects) {
-        setProjects(JSON.parse(savedProjects));
+    const fetchProjects = async () => {
+      try {
+        const res = await fetch('/api/projects');
+        const data = await res.json();
+        setProjects(data);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
       }
-    }
+    };
+    fetchProjects();
   }, []);
 
   return (

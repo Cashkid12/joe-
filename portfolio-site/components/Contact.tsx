@@ -9,36 +9,32 @@ export default function Contact() {
     message: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Create new message object
-    const newMessage = {
-      id: Date.now().toString(),
-      name: formData.name,
-      subject: formData.subject,
-      message: formData.message,
-      date: new Date().toISOString().split('T')[0],
-      read: false
-    };
-    
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      const existingMessages = localStorage.getItem('portfolioMessages');
-      const messages = existingMessages ? JSON.parse(existingMessages) : [];
-      messages.unshift(newMessage); // Add to beginning of array
-      localStorage.setItem('portfolioMessages', JSON.stringify(messages));
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        alert('Message sent successfully! I will get back to you soon.');
+        setFormData({
+          name: '',
+          subject: '',
+          message: ''
+        });
+      } else {
+        alert('Failed to send message. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('An error occurred. Please try again.');
     }
-    
-    // Show success message
-    alert('Message sent successfully! I will get back to you soon.');
-    
-    // Reset form
-    setFormData({
-      name: '',
-      subject: '',
-      message: ''
-    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -54,8 +50,8 @@ export default function Contact() {
         <div className="max-w-2xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold mb-6 text-center">Get In Touch</h2>
           <p className="text-lg text-gray-700 mb-8 text-center">
-            I'm always open to discussing new projects, opportunities, or collaborations.
-            Feel free to reach out if you'd like to connect!
+            I&apos;m always open to discussing new projects, opportunities, or collaborations.
+            Feel free to reach out if you&apos;d like to connect!
           </p>
           
           {/* Contact Form */}
