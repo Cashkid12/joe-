@@ -16,54 +16,102 @@ export default function Home() {
   const [projects, setProjects] = useState<any[]>([]);
 
   useEffect(() => {
-    const loadProjects = () => {
-      const savedProjects = localStorage.getItem('portfolio-projects');
-      if (savedProjects) {
+    const STORAGE_KEYS = ['portfolio-projects'];
+
+    const loadProjects = (source = 'init') => {
+      // ── 1. Check if localStorage is even available ──
+      let storageOk = false;
+      try {
+        const testKey = '__storage_test__';
+        localStorage.setItem(testKey, testKey);
+        localStorage.removeItem(testKey);
+        storageOk = true;
+      } catch {
+        console.warn('[Portfolio] localStorage blocked/unavailable (' + source + ')');
+        return;
+      }
+      if (!storageOk) return;
+
+      // ── 2. Try multiple fallback keys ──
+      let raw: string | null = null;
+      let usedKey = '';
+      for (const key of STORAGE_KEYS) {
         try {
-          setProjects(JSON.parse(savedProjects));
-        } catch {
-          setProjects([]);
-        }
-      } else {
-        // Seed data — first-time setup
-        const seed = [
-          {
-            id: Date.now(),
-            title: "Portfolio Website",
-            description: "A clean, minimalist personal portfolio built with Next.js and Tailwind CSS featuring dark mode support and an admin dashboard for project management.",
-            tech: ["Next.js", "Tailwind CSS", "TypeScript", "Vercel"],
-            category: "Web",
-            demoLink: "#",
-            sourceLink: "https://github.com/Cashkid12/portfolio",
-            image: ""
+          const val = localStorage.getItem(key);
+          if (val) { raw = val; usedKey = key; break; }
+        } catch { /* skip inaccessible key */ }
+      }
+
+      // ── 3. Parse & validate ──
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            console.log('[Portfolio] Loaded ' + parsed.length + ' projects from "' + usedKey + '" (' + source + ')');
+            setProjects(parsed);
+            return;
           }
-        ];
-        setProjects(seed);
+          console.warn('[Portfolio] Data is not an array (' + source + ')');
+          setProjects([]);
+          return;
+        } catch (parseErr) {
+          console.warn('[Portfolio] JSON parse failed (' + source + '):', parseErr);
+          setProjects([]);
+          return;
+        }
+      }
+
+      // ── 4. No data — seed first-time defaults ──
+      console.log('[Portfolio] No saved projects (' + source + ') — seeding default');
+      const seed = [
+        {
+          id: Date.now(),
+          title: 'Portfolio Website',
+          description: 'A clean, minimalist personal portfolio built with Next.js and Tailwind CSS featuring dark mode support and an admin dashboard for project management.',
+          tech: ['Next.js', 'Tailwind CSS', 'TypeScript', 'Vercel'],
+          category: 'Web',
+          demoLink: '#',
+          sourceLink: 'https://github.com/Cashkid12/portfolio',
+          image: ''
+        }
+      ];
+      setProjects(seed);
+      try {
         localStorage.setItem('portfolio-projects', JSON.stringify(seed));
+      } catch {
+        console.warn('[Portfolio] Could not persist seed data');
       }
     };
 
-    loadProjects();
+    // ── Initial load ──
+    loadProjects('init');
 
-    // Listen for changes from OTHER tabs (admin panel)
+    // ── Delayed retry (catches slow mobile localStorage init) ──
+    const retryTimer = setTimeout(() => loadProjects('retry'), 500);
+
+    // ── Cross-tab sync ──
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'portfolio-projects') {
-        loadProjects();
-      }
+      if (STORAGE_KEYS.includes(e.key || '')) loadProjects('storage');
     };
     window.addEventListener('storage', handleStorage);
 
-    // Re-read when user switches back to this tab
+    // ── Tab switch (visibilitychange) ──
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        loadProjects();
-      }
+      if (document.visibilityState === 'visible') loadProjects('visibility');
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
+    // ── iOS Safari bfcache restore ──
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) loadProjects('pageshow');
+    };
+    window.addEventListener('pageshow', handlePageShow);
+
     return () => {
+      clearTimeout(retryTimer);
       window.removeEventListener('storage', handleStorage);
       document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pageshow', handlePageShow);
     };
   }, []);
 
