@@ -25,26 +25,16 @@ export default function Home() {
           setProjects([]);
         }
       } else {
-        // Seed data
+        // Seed data — first-time setup
         const seed = [
           {
-            id: 1,
+            id: Date.now(),
             title: "Portfolio Website",
-            description: "A clean, minimalist personal portfolio built with Next.js and Tailwind CSS featuring dark mode support.",
-            tech: ["Next.js", "Tailwind CSS", "TypeScript"],
+            description: "A clean, minimalist personal portfolio built with Next.js and Tailwind CSS featuring dark mode support and an admin dashboard for project management.",
+            tech: ["Next.js", "Tailwind CSS", "TypeScript", "Vercel"],
             category: "Web",
             demoLink: "#",
             sourceLink: "https://github.com/Cashkid12/portfolio",
-            image: ""
-          },
-          {
-            id: 2,
-            title: "Task Manager App",
-            description: "A cross-platform task management app with push notifications and cloud sync.",
-            tech: ["React Native", "Expo", "Firebase"],
-            category: "Mobile",
-            demoLink: "#",
-            sourceLink: "https://github.com/Cashkid12/taskmanager",
             image: ""
           }
         ];
@@ -55,14 +45,26 @@ export default function Home() {
 
     loadProjects();
 
-    // Listen for changes from admin panel
+    // Listen for changes from OTHER tabs (admin panel)
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'portfolio-projects') {
         loadProjects();
       }
     };
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+
+    // Re-read when user switches back to this tab
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadProjects();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   const filteredProjects = activeFilter === 'All' 
@@ -211,16 +213,16 @@ export default function Home() {
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
+          <div className="flex flex-col max-[400px]:gap-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:justify-center min-[400px]:gap-3 sm:gap-4">
             <a
               href="#projects"
-              className="bg-black text-white px-6 py-2.5 sm:px-8 sm:py-3 rounded-full font-medium text-sm sm:text-base hover:bg-[#1f2937] transition-colors"
+              className="bg-black text-white px-6 py-2.5 sm:px-8 sm:py-3 rounded-full font-medium text-sm sm:text-base hover:bg-[#1f2937] transition-colors max-[400px]:w-full max-[400px]:text-center min-[400px]:flex-none"
             >
               View My Work
             </a>
             <a
               href="#contact"
-              className="bg-white border border-gray-300 px-6 py-2.5 sm:px-8 sm:py-3 rounded-full font-medium text-sm sm:text-base text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-colors"
+              className="bg-white border border-gray-300 px-6 py-2.5 sm:px-8 sm:py-3 rounded-full font-medium text-sm sm:text-base text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-colors max-[400px]:w-full max-[400px]:text-center min-[400px]:flex-none"
             >
               Get In Touch
             </a>
@@ -378,8 +380,8 @@ export default function Home() {
           </div>
 
           {/* Filter Bar */}
-          <div className="flex justify-center mb-8 sm:mb-12">
-            <div className="inline-flex rounded-full border border-gray-300 bg-white p-1 overflow-x-auto whitespace-nowrap">
+          <div className="flex justify-center mb-8 sm:mb-10">
+            <div className="inline-flex rounded-full border border-gray-300 bg-white p-1 overflow-x-auto whitespace-nowrap pb-1">
               {['All', 'Web', 'Mobile', 'Backend', 'AI/ML'].map((filter) => (
                 <button
                   key={filter}
@@ -398,86 +400,107 @@ export default function Home() {
 
           {/* Project Cards */}
           {filteredProjects.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-12">
-              No projects in this category yet.
-            </p>
+            /* Empty State */
+            <div className="text-center py-12">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-12 h-12 text-gray-300 mx-auto mb-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
+              </svg>
+              <p className="text-base font-medium text-gray-500">No projects yet</p>
+              <p className="text-sm text-gray-400 mt-1">Check back soon!</p>
+            </div>
           ) : (
-            <div className="space-y-6 max-w-3xl mx-auto text-left">
-              {filteredProjects.map((project) => (
+            <div className="space-y-6 sm:space-y-8 lg:space-y-10 max-w-3xl mx-auto text-left">
+              {filteredProjects.map((project, idx) => {
+                const isLatest = idx === filteredProjects.length - 1;
+                const noDemo = !project.demoLink || project.demoLink === '#';
+
+                return (
                 <div
                   key={project.id}
-                  className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-colors md:flex"
+                  className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-colors"
                 >
                   {/* Project Image */}
-                  <div className="md:w-48 flex-shrink-0">
-                    {project.image ? (
-                      <img
-                        src={project.image}
-                        alt={project.title}
-                        className="w-full h-48 md:h-full md:min-h-[200px] object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-48 md:h-full md:min-h-[200px] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-8 h-8 text-gray-300">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9.75 16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
+                  {project.image ? (
+                    <img
+                      src={project.image}
+                      alt={project.title}
+                      className={`w-full object-cover rounded-t-xl ${isLatest ? 'h-56 sm:h-64 lg:h-72 xl:h-80' : 'h-48 sm:h-56 lg:h-64 xl:h-72'}`}
+                    />
+                  ) : (
+                    <div className={`w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-t-xl ${isLatest ? 'h-56 sm:h-64 lg:h-72 xl:h-80' : 'h-48 sm:h-56 lg:h-64 xl:h-72'}`}>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-gray-300">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9.75 16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z" />
+                      </svg>
+                    </div>
+                  )}
 
                   {/* Content */}
-                  <div className="p-5 sm:p-6 flex-1">
+                  <div className="p-4 sm:p-5 lg:p-6">
 
-                  {/* Project Title */}
-                  <h3 className="text-lg sm:text-xl font-semibold text-[#171717] mb-2">{project.title}</h3>
+                    {/* Category Badge */}
+                    <span className="inline-block text-xs font-mono uppercase tracking-wider bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full mb-2">
+                      {project.category}
+                      {isLatest && <span className="ml-1.5 text-[10px] font-sans font-semibold text-black bg-white px-1.5 py-0.5 rounded-full">Latest</span>}
+                    </span>
 
-                  {/* Project Description */}
-                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed mb-4 line-clamp-2">{project.description}</p>
+                    {/* Project Title */}
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-[#171717] mb-2">{project.title}</h3>
 
-                  {/* Tech Stack Tags */}
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {Array.isArray(project.tech) ? project.tech.map((tech: string, index: number) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 text-xs text-gray-700 font-mono bg-gray-100 border border-gray-200 rounded-full"
+                    {/* Project Description */}
+                    <p className="text-sm sm:text-base text-gray-600 leading-relaxed mb-4">{project.description}</p>
+
+                    {/* Tech Stack Tags */}
+                    <div className="flex flex-wrap gap-1 sm:gap-2 mb-5">
+                      {Array.isArray(project.tech) ? project.tech.map((tech: string, i: number) => (
+                        <span
+                          key={i}
+                          className="px-2 py-0.5 sm:px-3 sm:py-1 text-xs text-gray-700 font-mono bg-gray-100 border border-gray-200 rounded-full hover:border-gray-300 transition-colors"
+                        >
+                          {tech}
+                        </span>
+                      )) : (project.tech as string).split(',').map((tech: string, i: number) => (
+                        <span
+                          key={i}
+                          className="px-2 py-0.5 sm:px-3 sm:py-1 text-xs text-gray-700 font-mono bg-gray-100 border border-gray-200 rounded-full hover:border-gray-300 transition-colors"
+                        >
+                          {tech.trim()}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col max-[400px]:gap-2 min-[400px]:flex-row min-[400px]:gap-3 sm:flex-row sm:gap-3">
+                      <a
+                        href={noDemo ? undefined : project.demoLink}
+                        onClick={noDemo ? (e) => e.preventDefault() : undefined}
+                        className={`inline-flex items-center justify-center gap-1 px-5 py-2.5 rounded-full text-sm font-medium transition-colors max-[400px]:w-full min-[400px]:flex-1 sm:flex-none ${
+                          noDemo
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-black text-white hover:bg-[#1f2937]'
+                        }`}
                       >
-                        {tech}
-                      </span>
-                    )) : (project.tech as string).split(',').map((tech: string, index: number) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 text-xs text-gray-700 font-mono bg-gray-100 border border-gray-200 rounded-full"
+                        Live Demo
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
+                      </a>
+                      <a
+                        href={project.sourceLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-1 px-5 py-2.5 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-colors max-[400px]:w-full min-[400px]:flex-1 sm:flex-none"
                       >
-                        {tech.trim()}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-3">
-                    <a
-                      href={project.demoLink}
-                      className="inline-flex items-center gap-1 px-4 py-1.5 sm:px-5 sm:py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-[#1f2937] transition-colors"
-                    >
-                      Live Demo
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                      </svg>
-                    </a>
-                    <a
-                      href={project.sourceLink}
-                      className="inline-flex items-center gap-1 px-4 py-1.5 sm:px-5 sm:py-2 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-colors"
-                    >
-                      Source Code
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                      </svg>
-                    </a>
-                  </div>
+                        Source Code
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+                          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                      </a>
+                    </div>
 
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>

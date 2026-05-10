@@ -159,11 +159,11 @@ export default function AdminPanel() {
         {/* ============================================ */}
         {/*  1. HEADER BAR                               */}
         {/* ============================================ */}
-        <header className="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-6 flex items-center justify-between">
+        <header className="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-6 flex flex-col max-[400px]:gap-3 min-[400px]:flex-row min-[400px]:items-center min-[400px]:justify-between">
           <h1 className="text-xl sm:text-2xl font-bold text-[#171717]">Admin Panel</h1>
           <button
             onClick={handleLogout}
-            className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors max-[400px]:w-full"
           >
             Logout
           </button>
@@ -262,7 +262,7 @@ export default function AdminPanel() {
                 {form.image ? (
                   /* State B — Image Selected */
                   <div>
-                    <img src={form.image} alt="Preview" className="w-full h-40 object-cover rounded-lg" />
+                    <img src={form.image} alt="Preview" className="w-full h-32 sm:h-40 object-cover rounded-lg" />
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-xs text-gray-600">{imageName}</span>
                       <button type="button" onClick={removeImage} className="text-xs text-red-500 hover:text-red-600">
@@ -274,13 +274,13 @@ export default function AdminPanel() {
                   /* State A — No Image */
                   <div
                     onClick={() => fileRef.current?.click()}
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-8 h-8 mx-auto mb-2 text-gray-400">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
                     </svg>
-                    <p className="text-sm text-gray-500">Click to upload project image</p>
+                    <p className="text-sm text-gray-500">Tap to upload project image</p>
                     <p className="text-xs text-gray-400 mt-1">PNG, JPG, or WebP (max 2MB)</p>
                   </div>
                 )}
@@ -288,7 +288,7 @@ export default function AdminPanel() {
                 <input
                   ref={fileRef}
                   type="file"
-                  accept="image/png,image/jpeg,image/webp"
+                  accept="image/*"
                   onChange={handleImageUpload}
                   className="hidden"
                 />
@@ -327,7 +327,7 @@ export default function AdminPanel() {
           {/* ========================================== */}
           {/*  RIGHT — Project List                      */}
           {/* ========================================== */}
-          <div className="bg-white shadow-md rounded-xl p-6 max-h-[700px] flex flex-col">
+          <div className="bg-white shadow-md rounded-xl p-6 max-h-96 lg:max-h-[700px] flex flex-col">
             {/* List Title */}
             <div className="flex items-center mb-4">
               <h2 className="text-lg font-semibold text-[#171717]">Current Projects</h2>
@@ -350,8 +350,8 @@ export default function AdminPanel() {
               ) : (
                 projects.map(project => {
                   const tags = project.tech || [];
-                  const visibleTags = tags.slice(0, 4);
-                  const extra = tags.length - 4;
+                  const visibleTags = tags.slice(0, 3);
+                  const extra = tags.length - 3;
 
                   return (
                     <div key={project.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
