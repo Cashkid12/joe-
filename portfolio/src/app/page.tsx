@@ -30,22 +30,12 @@ export default function Home() {
       }));
 
     const loadProjects = async (source = 'init') => {
-      // ── TRY 1: Fetch from static JSON file (source of truth) ──
-      try {
-        const res = await fetch('/data/projects.json');
-        if (res.ok) {
-          const json = await res.json();
-          if (Array.isArray(json)) {
-            console.log('[Portfolio] Loaded ' + json.length + ' projects from JSON file (' + source + ')');
-            setProjects(normalize(json));
-            return;
-          }
-        }
-      } catch {
-        console.log('[Portfolio] JSON file not reachable, trying localStorage (' + source + ')');
-      }
+      // ── DEBUG: dump all localStorage keys ──
+      const allKeys: string[] = [];
+      try { for (let i = 0; i < localStorage.length; i++) allKeys.push(localStorage.key(i) || ''); } catch {}
+      console.log('[Portfolio] localStorage keys (' + source + '):', allKeys.length ? allKeys : '(none / blocked)');
 
-      // ── TRY 2: localStorage fallback ──
+      // ── TRY 1: localStorage (PRIMARY — instant, syncs via browser account) ──
       try {
         const testKey = '__storage_test__';
         localStorage.setItem(testKey, testKey);
@@ -57,27 +47,62 @@ export default function Home() {
             if (raw) {
               const parsed = JSON.parse(raw);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                console.log('[Portfolio] Loaded ' + parsed.length + ' projects from localStorage "' + key + '" (' + source + ')');
+                console.log('[Portfolio] ✅ Loaded ' + parsed.length + ' projects from localStorage "' + key + '" (' + source + ')');
                 setProjects(normalize(parsed));
                 return;
               }
             }
           } catch { /* skip bad key */ }
         }
+        console.log('[Portfolio] localStorage OK but no projects found (' + source + ')');
       } catch {
         console.warn('[Portfolio] localStorage unavailable (' + source + ')');
       }
 
-      // ── TRY 3: Nothing found — show empty state ──
-      console.log('[Portfolio] No projects found (' + source + ')');
-      setProjects([]);
+      // ── TRY 2: Fetch from static JSON file (fallback for cold first-visit) ──
+      try {
+        const res = await fetch('/data/projects.json');
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json) && json.length > 0) {
+            console.log('[Portfolio] Loaded ' + json.length + ' projects from JSON file (' + source + ')');
+            setProjects(normalize(json));
+            return;
+          }
+        }
+      } catch {
+        console.log('[Portfolio] JSON file not reachable (' + source + ')');
+      }
+
+      // ── TRY 3: Nothing anywhere — seed defaults so there's always something visible ──
+      console.log('[Portfolio] No projects found (' + source + ') — seeding defaults');
+      const defaults = [
+        {
+          id: 'default-1',
+          title: 'Portfolio Website',
+          category: 'Web',
+          description: 'A clean, minimalist personal portfolio built with Next.js and Tailwind CSS featuring dark mode support, responsive design, and an admin dashboard for project management.',
+          techStack: 'Next.js, Tailwind CSS, TypeScript, Vercel',
+          demoLink: '',
+          sourceLink: 'https://github.com/Cashkid12/portfolio',
+          image: ''
+        }
+      ];
+      setProjects(normalize(defaults));
+      try {
+        localStorage.setItem('portfolio-projects', JSON.stringify(defaults));
+        console.log('[Portfolio] Seeded default projects to localStorage');
+      } catch {
+        console.warn('[Portfolio] Could not persist seed data');
+      }
     };
 
     // ── Initial load ──
     loadProjects('init');
 
     // ── Delayed retry (catches slow mobile init) ──
-    const retryTimer = setTimeout(() => loadProjects('retry'), 500);
+    const retryTimer = setTimeout(() => loadProjects('retry'), 300);
+    const retryTimer2 = setTimeout(() => loadProjects('retry2'), 800);
 
     // ── Cross-tab sync ──
     const handleStorage = (e: StorageEvent) => {
@@ -85,7 +110,7 @@ export default function Home() {
     };
     window.addEventListener('storage', handleStorage);
 
-    // ── Tab switch (visibilitychange) ──
+    // ── Tab becomes visible ──
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') loadProjects('visibility');
     };
@@ -97,11 +122,17 @@ export default function Home() {
     };
     window.addEventListener('pageshow', handlePageShow);
 
+    // ── Window regains focus (user switches back from another app) ──
+    const handleFocus = () => loadProjects('focus');
+    window.addEventListener('focus', handleFocus);
+
     return () => {
       clearTimeout(retryTimer);
+      clearTimeout(retryTimer2);
       window.removeEventListener('storage', handleStorage);
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
@@ -419,7 +450,7 @@ export default function Home() {
 
           {/* Filter Bar */}
           <div className="flex justify-center mb-8 sm:mb-10">
-            <div className="inline-flex rounded-full border border-gray-300 bg-white p-1 overflow-x-auto whitespace-nowrap pb-1">
+            <div className="inline-flex rounded-full border border-gray-300 bg-white p-1 overflow-x-auto whitespace-nowrap pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
               {['All', 'Web', 'Mobile', 'Backend', 'AI/ML'].map((filter) => (
                 <button
                   key={filter}
@@ -439,12 +470,24 @@ export default function Home() {
           {/* Project Cards */}
           {filteredProjects.length === 0 ? (
             /* Empty State */
-            <div className="text-center py-12">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-12 h-12 text-gray-300 mx-auto mb-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
-              </svg>
-              <p className="text-base font-medium text-gray-500">No projects yet</p>
-              <p className="text-sm text-gray-400 mt-1">Check back soon!</p>
+            <div className="empty-state">
+              {activeFilter !== 'All' ? (
+                <>
+                  <svg className="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <p className="empty-title">No {activeFilter} projects yet</p>
+                  <p className="empty-subtitle">Try selecting a different category</p>
+                </>
+              ) : (
+                <>
+                  <svg className="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                  </svg>
+                  <p className="empty-title">No projects yet</p>
+                  <p className="empty-subtitle">Add your first project via the admin panel</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-6 sm:space-y-8 lg:space-y-10 max-w-3xl mx-auto text-left">
@@ -541,6 +584,13 @@ export default function Home() {
               })}
             </div>
           )}
+
+          {/* Subtle admin link */}
+          <div className="text-center mt-8">
+            <a href="/admin" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+              Manage Projects →
+            </a>
+          </div>
         </div>
       </section>
 

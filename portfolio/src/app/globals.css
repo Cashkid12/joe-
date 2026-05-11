@@ -215,10 +215,69 @@
   .to-gray-200 {
     --tw-gradient-to: #3f3f46;
   }
+
+  /* Disabled buttons */
+  .bg-gray-300 {
+    background-color: #27272a;
+  }
+
+  .bg-gray-300.text-gray-500 {
+    color: #52525b;
+  }
+
+  .cursor-not-allowed {
+    cursor: not-allowed;
+  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Geist Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* ============================================ */
+/* EMPTY STATE */
+/* ============================================ */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .empty-state {
+    padding: 4rem 2rem;
+  }
+}
+
+.empty-icon {
+  width: 3rem;
+  height: 3rem;
+  color: #d1d5db;
+  margin: 0 auto 1rem;
+}
+
+@media (min-width: 640px) {
+  .empty-icon {
+    width: 4rem;
+    height: 4rem;
+  }
+}
+
+.empty-title {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.empty-subtitle {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+@media (prefers-color-scheme: dark) {
+  .empty-icon {
+    color: #3f3f46;
+  }
 }
