@@ -29,6 +29,7 @@ export default function AdminPanel() {
   const [imageName, setImageName] = useState('');
   const [imageError, setImageError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const importRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   /* ---- Auth check ---- */
@@ -148,6 +149,52 @@ export default function AdminPanel() {
   const handleLogout = () => {
     localStorage.removeItem('admin-auth');
     router.push('/');
+  };
+
+  /* ---- Export projects as JSON file ---- */
+  const handleExport = () => {
+    const raw = localStorage.getItem('portfolio-projects');
+    if (!raw) {
+      alert('No projects to export.');
+      return;
+    }
+    const projects = JSON.parse(raw);
+    const jsonString = JSON.stringify(projects, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'projects-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    console.log('Exported ' + projects.length + ' projects');
+  };
+
+  /* ---- Import projects from JSON file ---- */
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const imported = JSON.parse(ev.target?.result as string);
+        if (!Array.isArray(imported)) {
+          alert('Invalid file: not a project list.');
+          return;
+        }
+        localStorage.setItem('portfolio-projects', JSON.stringify(imported));
+        setProjects(imported);
+        console.log('Imported ' + imported.length + ' projects');
+        alert('Imported ' + imported.length + ' projects successfully!');
+      } catch {
+        alert('Invalid JSON file.');
+      }
+    };
+    reader.readAsText(file);
+    // Reset so same file can be re-imported
+    if (importRef.current) importRef.current.value = '';
   };
 
   const isEditing = editingId !== null;
@@ -428,6 +475,35 @@ export default function AdminPanel() {
                   );
                 })
               )}
+            </div>
+
+            {/* Sync Section */}
+            <div className="border-t border-gray-200 mt-4 pt-4">
+              <p className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wider">
+                Sync Projects
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  className="flex-1 px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Export JSON
+                </button>
+                <label className="flex-1 px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-center">
+                  Import JSON
+                  <input
+                    ref={importRef}
+                    type="file"
+                    accept=".json"
+                    onChange={handleImport}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                Export on desktop, send file to phone, then Import on mobile to sync projects.
+              </p>
             </div>
           </div>
         </div>

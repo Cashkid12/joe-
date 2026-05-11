@@ -16,77 +16,67 @@ export default function Home() {
   const [projects, setProjects] = useState<any[]>([]);
 
   useEffect(() => {
-    const STORAGE_KEYS = ['portfolio-projects'];
+    const STORAGE_KEYS = ['portfolio-projects', 'portfolioProjects', 'projects'];
 
-    const loadProjects = (source = 'init') => {
-      // ── 1. Check if localStorage is even available ──
-      let storageOk = false;
+    // ── Normalize loaded data to consistent shape (tech array) ──
+    const normalize = (raw: any[]): any[] =>
+      raw.map(p => ({
+        ...p,
+        tech: Array.isArray(p.tech)
+          ? p.tech
+          : typeof p.techStack === 'string'
+            ? p.techStack.split(',').map((t: string) => t.trim()).filter(Boolean)
+            : p.tech || []
+      }));
+
+    const loadProjects = async (source = 'init') => {
+      // ── TRY 1: Fetch from static JSON file (source of truth) ──
+      try {
+        const res = await fetch('/data/projects.json');
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json) && json.length > 0) {
+            console.log('[Portfolio] Loaded ' + json.length + ' projects from JSON file (' + source + ')');
+            setProjects(normalize(json));
+            return;
+          }
+        }
+      } catch {
+        console.log('[Portfolio] JSON file not reachable, trying localStorage (' + source + ')');
+      }
+
+      // ── TRY 2: localStorage fallback ──
       try {
         const testKey = '__storage_test__';
         localStorage.setItem(testKey, testKey);
         localStorage.removeItem(testKey);
-        storageOk = true;
-      } catch {
-        console.warn('[Portfolio] localStorage blocked/unavailable (' + source + ')');
-        return;
-      }
-      if (!storageOk) return;
 
-      // ── 2. Try multiple fallback keys ──
-      let raw: string | null = null;
-      let usedKey = '';
-      for (const key of STORAGE_KEYS) {
-        try {
-          const val = localStorage.getItem(key);
-          if (val) { raw = val; usedKey = key; break; }
-        } catch { /* skip inaccessible key */ }
-      }
-
-      // ── 3. Parse & validate ──
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            console.log('[Portfolio] Loaded ' + parsed.length + ' projects from "' + usedKey + '" (' + source + ')');
-            setProjects(parsed);
-            return;
-          }
-          console.warn('[Portfolio] Data is not an array (' + source + ')');
-          setProjects([]);
-          return;
-        } catch (parseErr) {
-          console.warn('[Portfolio] JSON parse failed (' + source + '):', parseErr);
-          setProjects([]);
-          return;
+        for (const key of STORAGE_KEYS) {
+          try {
+            const raw = localStorage.getItem(key);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                console.log('[Portfolio] Loaded ' + parsed.length + ' projects from localStorage "' + key + '" (' + source + ')');
+                setProjects(normalize(parsed));
+                return;
+              }
+            }
+          } catch { /* skip bad key */ }
         }
+      } catch {
+        console.warn('[Portfolio] localStorage unavailable (' + source + ')');
       }
 
-      // ── 4. No data — seed first-time defaults ──
-      console.log('[Portfolio] No saved projects (' + source + ') — seeding default');
-      const seed = [
-        {
-          id: Date.now(),
-          title: 'Portfolio Website',
-          description: 'A clean, minimalist personal portfolio built with Next.js and Tailwind CSS featuring dark mode support and an admin dashboard for project management.',
-          tech: ['Next.js', 'Tailwind CSS', 'TypeScript', 'Vercel'],
-          category: 'Web',
-          demoLink: '#',
-          sourceLink: 'https://github.com/Cashkid12/portfolio',
-          image: ''
-        }
-      ];
-      setProjects(seed);
-      try {
-        localStorage.setItem('portfolio-projects', JSON.stringify(seed));
-      } catch {
-        console.warn('[Portfolio] Could not persist seed data');
-      }
+      // ── TRY 3: Nothing found — show empty state ──
+      console.log('[Portfolio] No projects found (' + source + ')');
+      setProjects([]);
     };
 
     // ── Initial load ──
     loadProjects('init');
 
-    // ── Delayed retry (catches slow mobile localStorage init) ──
+    // ── Delayed retry (catches slow mobile init) ──
     const retryTimer = setTimeout(() => loadProjects('retry'), 500);
 
     // ── Cross-tab sync ──
