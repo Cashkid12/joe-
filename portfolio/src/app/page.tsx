@@ -35,7 +35,7 @@ export default function Home() {
         const res = await fetch('/data/projects.json');
         if (res.ok) {
           const json = await res.json();
-          if (Array.isArray(json) && json.length > 0) {
+          if (Array.isArray(json)) {
             console.log('[Portfolio] Loaded ' + json.length + ' projects from JSON file (' + source + ')');
             setProjects(normalize(json));
             return;

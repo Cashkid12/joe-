@@ -1,12 +1,1 @@
-[
-  {
-    "id": "1",
-    "title": "Portfolio Website",
-    "category": "Web",
-    "description": "A clean, minimalist personal portfolio built with Next.js and Tailwind CSS featuring dark mode support, responsive design, and an admin dashboard for project management.",
-    "techStack": "Next.js, Tailwind CSS, TypeScript, Vercel",
-    "demoLink": "",
-    "sourceLink": "https://github.com/Cashkid12/portfolio",
-    "image": ""
-  }
-]
+[]
